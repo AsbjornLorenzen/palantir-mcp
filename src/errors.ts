@@ -58,6 +58,20 @@ Please generate a new Token at https://${foundryHostname}/workspace/settings/tok
   }
 }
 
+export class NoTokenAvailableError extends McpError {
+  constructor(foundryHostname: string) {
+    super(
+      `No Foundry token available for ${foundryHostname}.\n\n` +
+        `Please provide a token using one of these methods:\n` +
+        `  1. Set the FOUNDRY_TOKEN environment variable\n` +
+        `  2. Pass --foundry-token <token> as a CLI argument\n\n` +
+        `You can generate a token at https://${foundryHostname}/workspace/settings/tokens\n\n` +
+        `After the first successful authentication, the token will be cached for future sessions.`,
+    )
+    this.name = 'NoTokenAvailableError'
+  }
+}
+
 export class PackageFetchError extends McpError {
   constructor(cause: unknown) {
     super(

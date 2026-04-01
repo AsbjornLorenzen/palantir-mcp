@@ -4,7 +4,12 @@
  * Licensed under the MIT License. See LICENSE file in the project root.
  */
 
-import { NetworkError, NodeVersionError, PackageFetchError } from './errors.js'
+import {
+  NetworkError,
+  NodeVersionError,
+  NoTokenAvailableError,
+  PackageFetchError,
+} from './errors.js'
 import { TokenRefreshUtils } from './utils/tokenRefreshUtils.js'
 
 export function checkNodeVersion(): void {
@@ -28,8 +33,12 @@ export async function checkNetworkConnectivity(foundryApiUrl: URL): Promise<void
 
 export async function validateFoundryToken(
   foundryApiUrl: URL,
-  foundryToken: string,
+  foundryToken: string | undefined,
 ): Promise<string> {
+  if (foundryToken === undefined) {
+    throw new NoTokenAvailableError(foundryApiUrl.hostname)
+  }
+
   const newToken: string | undefined = await new TokenRefreshUtils(
     foundryApiUrl,
     foundryToken,

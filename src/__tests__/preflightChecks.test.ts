@@ -6,7 +6,12 @@
 
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-import { NetworkError, NodeVersionError, PackageFetchError } from '../errors.js'
+import {
+  NetworkError,
+  NodeVersionError,
+  NoTokenAvailableError,
+  PackageFetchError,
+} from '../errors.js'
 import {
   checkNodeVersion,
   checkNetworkConnectivity,
@@ -180,6 +185,12 @@ describe('preflightChecks', () => {
 
       await expect(validateFoundryToken(foundryApiUrl, foundryToken)).rejects.toThrow(
         'Browser failed to open',
+      )
+    })
+
+    it('should throw NoTokenAvailableError when token is undefined', async () => {
+      await expect(validateFoundryToken(foundryApiUrl, undefined)).rejects.toThrow(
+        NoTokenAvailableError,
       )
     })
   })

@@ -15,17 +15,23 @@ import {
 } from './preflightChecks.js'
 import { buildNpmRegistryUrl } from './registry.js'
 import { spawnMcp } from './spawn.js'
+import { loadCachedToken } from './utils/tokenCache.js'
 
 async function main() {
   const { foundryToken, foundryApiUrl } = parseArguments(process.argv)
+  // foundryApiUrl is guaranteed by Commander (mandatory option)
+  const foundryHost = foundryApiUrl.origin
   const npmRegistry: URL = buildNpmRegistryUrl(foundryApiUrl)
+
+  // Token resolution: cached token > CLI arg/env var > browser auth
+  const resolvedToken: string | undefined = loadCachedToken(foundryHost) ?? foundryToken
 
   let validatedFoundryToken: string
 
   try {
     checkNodeVersion()
     await checkNetworkConnectivity(foundryApiUrl)
-    validatedFoundryToken = await validateFoundryToken(foundryApiUrl, foundryToken)
+    validatedFoundryToken = await validateFoundryToken(foundryApiUrl, resolvedToken)
     // important for child processes spawned later
     process.env.FOUNDRY_TOKEN = validatedFoundryToken
 
