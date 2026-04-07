@@ -19,11 +19,10 @@ import { loadCachedToken } from './utils/tokenCache.js'
 
 async function main() {
   const { foundryToken, foundryApiUrl } = parseArguments(process.argv)
-  // foundryApiUrl is guaranteed by Commander (mandatory option)
   const foundryHost = foundryApiUrl.origin
   const npmRegistry: URL = buildNpmRegistryUrl(foundryApiUrl)
 
-  // Token resolution: cached token > CLI arg/env var > browser auth
+  // Token resolution: cached token > CLI arg/env var. Refresh token if expired
   const resolvedToken: string | undefined = loadCachedToken(foundryHost) ?? foundryToken
 
   let validatedFoundryToken: string

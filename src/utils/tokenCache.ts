@@ -10,10 +10,6 @@ import path from 'path'
 
 const CONFIG_FILE = path.join(os.homedir(), '.palantir', 'mcp-config.json')
 
-/**
- * Load a cached token for the given Foundry host.
- * The config file is written by @palantir/mcp; this function only reads it.
- */
 export function loadCachedToken(foundryHost: string): string | undefined {
   try {
     const content = fs.readFileSync(CONFIG_FILE, 'utf-8')
