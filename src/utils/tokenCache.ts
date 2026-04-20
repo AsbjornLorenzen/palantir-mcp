@@ -68,45 +68,15 @@ export function loadCachedToken(foundryHost: string): string | undefined {
   return typeof token === 'string' && token.length > 0 ? token : undefined
 }
 
-// Lightweight local check of expiry
-export function isJwtExpired(token: string): boolean {
-  try {
-    const parts = token.split('.')
-    if (parts.length !== 3) {
-      return true
-    }
-    const payload = JSON.parse(Buffer.from(parts[1], 'base64url').toString())
-    if (typeof payload.exp !== 'number') {
-      return true
-    }
-    return payload.exp * 1000 <= Date.now()
-  } catch {
-    return true
-  }
-}
-
 /**
- * Priority:
- *  1. CLI/env token if not expired (user may have intentionally updated it)
- *  2. Cached token
- *  3. CLI/env token even if expired (used to refresh via browser)
+ * Resolves a token for the given host.
+ * Cache is the source of truth; CLI/env token is a fallback that seeds the cache on first use.
  */
 export function resolveToken(
   foundryHost: string,
   cliToken: string | undefined,
 ): string | undefined {
-  const cachedToken = loadCachedToken(foundryHost)
-
-  if (cliToken && !isJwtExpired(cliToken)) {
-    return cliToken
-  }
-
-  if (cachedToken) {
-    return cachedToken
-  }
-
-  // validateFoundryToken needs the expired token to trigger a browser-based refresh
-  return cliToken
+  return loadCachedToken(foundryHost) ?? cliToken
 }
 
 // Creates .palantir directory containing mcp-config.json if they don't exist.

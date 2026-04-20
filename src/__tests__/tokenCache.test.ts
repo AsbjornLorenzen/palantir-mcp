@@ -7,12 +7,7 @@
 import fs from 'fs'
 import os from 'os'
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import {
-  isJwtExpired,
-  loadCachedToken,
-  resolveToken,
-  saveCachedToken,
-} from '../utils/tokenCache.js'
+import { loadCachedToken, resolveToken, saveCachedToken } from '../utils/tokenCache.js'
 
 vi.mock('fs')
 vi.mock('os', () => ({
@@ -20,15 +15,8 @@ vi.mock('os', () => ({
   homedir: vi.fn().mockReturnValue('/mock/home'),
 }))
 
-function makeJwt(payload: Record<string, unknown>): string {
-  const header = Buffer.from(JSON.stringify({ alg: 'HS256' })).toString('base64url')
-  const body = Buffer.from(JSON.stringify(payload)).toString('base64url')
-  return `${header}.${body}.sig`
-}
-
-const EXPIRED_TOKEN = makeJwt({ sub: 'test', exp: Math.floor(Date.now() / 1000) - 3600 })
-const VALID_TOKEN = makeJwt({ sub: 'test', exp: Math.floor(Date.now() / 1000) + 3600 })
-const CACHED_TOKEN = makeJwt({ sub: 'cached', exp: Math.floor(Date.now() / 1000) + 3600 })
+const CACHED_TOKEN = 'cached-host-token'
+const CLI_TOKEN = 'cli-provided-token'
 
 const VALID_CONFIG = JSON.stringify({
   hosts: {
@@ -153,38 +141,13 @@ describe('tokenCache', () => {
     })
   })
 
-  describe('isJwtExpired', () => {
-    it('should return false for a token with future exp', () => {
-      expect(isJwtExpired(VALID_TOKEN)).toBe(false)
-    })
-
-    it('should return true for a token with past exp', () => {
-      expect(isJwtExpired(EXPIRED_TOKEN)).toBe(true)
-    })
-
-    it('should return true for a malformed token', () => {
-      expect(isJwtExpired('not-a-jwt')).toBe(true)
-    })
-
-    it('should return true for a token without exp claim', () => {
-      const noExp = makeJwt({ sub: 'test' })
-      expect(isJwtExpired(noExp)).toBe(true)
-    })
-  })
-
   describe('resolveToken', () => {
     const HOST = 'https://example.palantirfoundry.com'
 
-    it('should prefer a valid CLI token over cache', () => {
+    it('should prefer cached token over CLI token', () => {
       vi.spyOn(fs, 'readFileSync').mockReturnValue(VALID_CONFIG)
 
-      expect(resolveToken(HOST, VALID_TOKEN)).toBe(VALID_TOKEN)
-    })
-
-    it('should fall back to cache when CLI token is expired', () => {
-      vi.spyOn(fs, 'readFileSync').mockReturnValue(VALID_CONFIG)
-
-      expect(resolveToken(HOST, EXPIRED_TOKEN)).toBe(CACHED_TOKEN)
+      expect(resolveToken(HOST, CLI_TOKEN)).toBe(CACHED_TOKEN)
     })
 
     it('should use cache when no CLI token is provided', () => {
@@ -193,12 +156,12 @@ describe('tokenCache', () => {
       expect(resolveToken(HOST, undefined)).toBe(CACHED_TOKEN)
     })
 
-    it('should return expired CLI token as last resort when no cache exists', () => {
+    it('should fall back to CLI token when no cache exists', () => {
       vi.spyOn(fs, 'readFileSync').mockImplementation(() => {
         throw new Error('ENOENT')
       })
 
-      expect(resolveToken(HOST, EXPIRED_TOKEN)).toBe(EXPIRED_TOKEN)
+      expect(resolveToken(HOST, CLI_TOKEN)).toBe(CLI_TOKEN)
     })
 
     it('should return undefined when no token is available', () => {
