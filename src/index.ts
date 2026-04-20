@@ -15,15 +15,14 @@ import {
 } from './preflightChecks.js'
 import { buildNpmRegistryUrl } from './registry.js'
 import { spawnMcp } from './spawn.js'
-import { loadCachedToken } from './utils/tokenCache.js'
+import { resolveToken, saveCachedToken } from './utils/tokenCache.js'
 
 async function main() {
   const { foundryToken, foundryApiUrl } = parseArguments(process.argv)
   const foundryHost = foundryApiUrl.origin
   const npmRegistry: URL = buildNpmRegistryUrl(foundryApiUrl)
 
-  // Token resolution: cached token > CLI arg/env var. Refresh token if expired
-  const resolvedToken: string | undefined = loadCachedToken(foundryHost) ?? foundryToken
+  const resolvedToken: string | undefined = resolveToken(foundryHost, foundryToken)
 
   let validatedFoundryToken: string
 
@@ -31,6 +30,8 @@ async function main() {
     checkNodeVersion()
     await checkNetworkConnectivity(foundryApiUrl)
     validatedFoundryToken = await validateFoundryToken(foundryApiUrl, resolvedToken)
+    // Always persist the validated token so future startups can use the cache
+    saveCachedToken(foundryHost, validatedFoundryToken)
     // important for child processes spawned later
     process.env.FOUNDRY_TOKEN = validatedFoundryToken
 
